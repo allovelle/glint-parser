@@ -2,6 +2,42 @@ use std::{fmt, io};
 
 use thiserror::Error;
 
+use color::*;
+mod color
+{
+    use std::fmt;
+
+    pub const RESET: &str = "\x1b[0m";
+    pub const RED: &str = "\x1b[31m";
+    pub const GREEN: &str = "\x1b[32m";
+    pub const BLUE: &str = "\x1b[34m";
+    pub const YELLOW: &str = "\x1b[33m";
+
+    pub fn emit_red<T: fmt::Debug>(value: T)
+    {
+        let output = format!("{value:?}");
+        println!("{RED}{}{RESET}", output.trim_matches('"'));
+    }
+
+    pub fn emit_green<T: fmt::Debug>(value: T)
+    {
+        let output = format!("{value:?}");
+        println!("{GREEN}{}{RESET}", output.trim_matches('"'));
+    }
+
+    pub fn emit_blue<T: fmt::Debug>(value: T)
+    {
+        let output = format!("{value:?}");
+        println!("{BLUE}{}{RESET}", output.trim_matches('"'));
+    }
+
+    pub fn emit_yellow<T: fmt::Debug>(value: T)
+    {
+        let output = format!("{value:?}");
+        println!("{YELLOW}{}{RESET}", output.trim_matches('"'));
+    }
+}
+
 #[derive(Debug, Error)]
 enum GlintErr
 {
@@ -45,22 +81,19 @@ fn init() -> Result<(), GlintErr>
     println!("Hello, world!");
 
     let filepath = std::env::args().nth(1).unwrap();
-    let regex = Regex::new(r"( +)(a|b)")?;
+    let regex = Regex::new(r"( *)(a|b)")?;
 
     for line in std::fs::read_to_string(&filepath)?.lines()
     {
-        println!("{:?}", regex.find(line));
+        emit_green(format!("{:?}", regex.find(line)));
         let captures = regex.captures(line).ok_or(GlintErr::SourceErr(
             SourceErr::InvalidSyntax {
                 filepath: filepath.to_string(),
                 sourceline: line.to_string(),
             },
         ))?;
-        println!("captures: {captures:?}");
         let (_full, [indent, content]) = captures.extract();
-        println!(
-            "Got these captures: indent: {indent:?}, content: {content:?}"
-        );
+        emit_blue(format!("    Spaces: `{indent:?}` Source: `{content:?}`"));
     }
 
     Ok(())
@@ -68,64 +101,8 @@ fn init() -> Result<(), GlintErr>
 
 fn main()
 {
-    report(init());
-}
-
-fn report<T: fmt::Debug>(result: Result<T, GlintErr>)
-{
-    println!("{:?}", result);
-
-    use ariadne::Color;
-    use ariadne::*;
-
-    if let Err(err) = result
+    if let Err(err) = init()
     {
-        match err
-        {
-            GlintErr::IoErr(error) => todo!(),
-            GlintErr::RegexErr(error) => todo!(),
-            GlintErr::SourceErr(SourceErr::InvalidSyntax {
-                filepath,
-                sourceline,
-            }) =>
-            {
-                let path = filepath.as_str();
-                let code = sourceline.as_str();
-
-                let mut report =
-                    Report::build(ReportKind::Error, (path, 0 .. 0));
-
-                // report = report.with_config(Config::default().with_compact(false));
-                // report = report.with_code(200123);
-                report =
-                    report.with_message(format!("What are you {}?", "doing"));
-
-                report = report.with_label(
-                    Label::new((code, 0 .. code.len()))
-                        .with_color(Color::Red)
-                        .with_message("invalid syntax:"),
-                );
-                // report = report.with_label(
-                //     Label::new((path, 8 .. 10))
-                //         .with_color(Color::Green)
-                //         .with_message("A"),
-                // );
-                // report = report.with_label(
-                //     Label::new((path, 13 .. 15))
-                //         .with_color(Color::Green)
-                //         .with_message("B"),
-                // );
-                // report = report.with_label(
-                //     Label::new((path, 19 .. 21))
-                //         .with_color(Color::Green)
-                //         .with_message("C"),
-                // );
-                // report = report.with_note("There is probably something");
-
-                let err_report = report.finish();
-                let source = Source::from(path);
-                err_report.print((path, source)).unwrap();
-            }
-        }
+        emit_red(err);
     }
 }
