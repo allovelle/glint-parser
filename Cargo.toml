@@ -1,0 +1,9 @@
+[package]
+name = "glint"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ariadne = "0.6.0"
+regex = "1.12.2"
+thiserror = "2.0.17"
